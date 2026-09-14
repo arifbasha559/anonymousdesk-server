@@ -1,0 +1,268 @@
+// AnonymousDesk — Prisma schema (MySQL)
+// Privacy-first: no email/password stored, only hashed derivatives.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum TrustLevel {
+  newcomer
+  contributor
+  trusted
+  expert
+}
+
+enum PostStatus {
+  draft
+  published
+  removed
+  archived
+}
+
+enum ReportStatus {
+  pending
+  resolved
+  dismissed
+}
+
+enum ReportReason {
+  pii
+  spam
+  toxic
+  off_topic
+  other
+}
+
+enum NotifType {
+  reply
+  helpful
+  karma
+  trust
+  moderation
+  system
+}
+
+model User {
+  id                String     @id @default(uuid())
+  anonId            String     @unique @map("anon_id")
+  emailHash         String     @unique @map("email_hash")
+  passwordHash      String     @map("password_hash")
+  industry          String
+  jobTitle          String     @map("job_title")
+  experienceYears   Int        @map("experience_years")
+  industryVerified  Boolean    @default(false) @map("industry_verified")
+  karma             Int        @default(0)
+  trustLevel        TrustLevel @default(newcomer) @map("trust_level")
+  isActive          Boolean    @default(true) @map("is_active")
+  isBanned          Boolean    @default(false) @map("is_banned")
+  bannedUntil        DateTime?  @map("banned_until")
+  banReason         String?    @map("ban_reason") @db.Text
+  failedLoginCount   Int        @default(0) @map("failed_login_count")
+  lockedUntil        DateTime?  @map("locked_until")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  tokens        RefreshToken[]
+  posts         Post[]
+  replies       Reply[]
+  postUpvotes   PostUpvote[]
+  replyHelpful  ReplyHelpful[]
+  karmaEvents   KarmaEvent[]
+  notifications Notification[]
+  reportsFiled  Report[]       @relation("ReportsFiled")
+
+  @@index([karma])
+  @@index([trustLevel])
+  @@map("users")
+}
+
+model RefreshToken {
+  id                 String    @id @default(uuid())
+  userId             String    @map("user_id")
+  tokenHash          String    @unique @map("token_hash")
+  deviceFingerprint  String?   @map("device_fingerprint")
+  isRevoked          Boolean   @default(false) @map("is_revoked")
+  issuedAt           DateTime  @default(now()) @map("issued_at")
+  expiresAt          DateTime  @map("expires_at")
+  lastUsedAt         DateTime? @map("last_used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRevoked])
+  @@map("refresh_tokens")
+}
+
+model Category {
+  id      String @id @default(uuid())
+  name    String @unique
+  slug    String @unique
+  icon    String?
+  colorBg String? @map("color_bg")
+  colorFg String? @map("color_fg")
+
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+  slug String @unique
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model Post {
+  id           String     @id @default(uuid())
+  authorId     String?    @map("author_id")
+  categoryId   String?    @map("category_id")
+  title        String     @db.VarChar(300)
+  body         String     @db.Text
+  status       PostStatus @default(published)
+  upvoteCount  Int        @default(0) @map("upvote_count")
+  replyCount   Int        @default(0) @map("reply_count")
+  viewCount    Int        @default(0) @map("view_count")
+  aiSummary    String?    @map("ai_summary") @db.Text
+  aiSummaryAt  DateTime?  @map("ai_summary_at")
+  isFlagged    Boolean    @default(false) @map("is_flagged")
+  flaggedReason String?   @map("flagged_reason") @db.Text
+  publishedAt  DateTime?  @map("published_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  author   User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  category Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags     PostTag[]
+  replies  Reply[]
+  upvotes  PostUpvote[]
+  reports  Report[]
+
+  @@index([status, createdAt])
+  @@index([categoryId, status])
+  @@index([upvoteCount])
+  @@map("posts")
+}
+
+model PostTag {
+  postId String @map("post_id")
+  tagId  String @map("tag_id")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model PostUpvote {
+  userId    String   @map("user_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@map("post_upvotes")
+}
+
+model Reply {
+  id              String   @id @default(uuid())
+  postId          String   @map("post_id")
+  authorId        String?  @map("author_id")
+  parentId        String?  @map("parent_id")
+  body            String   @db.Text
+  authorIndustry  String?  @map("author_industry")
+  authorJobTitle  String?  @map("author_job_title")
+  authorYrsExp    Int?     @map("author_yrs_exp")
+  isExpertReply   Boolean  @default(false) @map("is_expert_reply")
+  helpfulCount    Int      @default(0) @map("helpful_count")
+  isRemoved       Boolean  @default(false) @map("is_removed")
+  removedReason   String?  @map("removed_reason") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  post     Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author   User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  parent   Reply?         @relation("ReplyThread", fields: [parentId], references: [id], onDelete: Cascade)
+  children Reply[]        @relation("ReplyThread")
+  helpful  ReplyHelpful[]
+  reports  Report[]
+
+  @@index([postId, helpfulCount])
+  @@index([postId, isExpertReply])
+  @@map("replies")
+}
+
+model ReplyHelpful {
+  userId    String   @map("user_id")
+  replyId   String   @map("reply_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reply Reply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, replyId])
+  @@map("reply_helpful")
+}
+
+model KarmaEvent {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  eventType String   @map("event_type")
+  delta     Int
+  balance   Int
+  refPostId  String? @map("ref_post_id")
+  refReplyId String? @map("ref_reply_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("karma_events")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  notifType NotifType @map("notif_type")
+  title     String
+  body      String?   @db.Text
+  refPostId  String?  @map("ref_post_id")
+  refReplyId String?  @map("ref_reply_id")
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  reporterId  String?      @map("reporter_id")
+  postId      String?      @map("post_id")
+  replyId     String?      @map("reply_id")
+  reason      ReportReason
+  details     String?      @db.Text
+  status      ReportStatus @default(pending)
+  resolvedAt  DateTime?    @map("resolved_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  reporter User?  @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: SetNull)
+  post     Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reply    Reply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("reports")
+}
