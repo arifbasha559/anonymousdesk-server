@@ -3,6 +3,7 @@ const logger = require("./config/logger");
 const app = require("./app");
 const prisma = require("./config/prisma");
 const redis = require("./config/redis");
+const readline = require('readline');
 
 const server = app.listen(env.PORT, () => {
   logger.info(`AnonymousDesk API listening on port ${env.PORT} [${env.NODE_ENV}]`);
@@ -22,6 +23,7 @@ process.on("uncaughtException", (err) => {
 
 async function shutdown(code = 0) {
   logger.info("Shutting down gracefully...");
+  logger.trace("goodbye")
   server.close(async () => {
     await prisma.$disconnect();
     redis.disconnect();
@@ -33,6 +35,18 @@ async function shutdown(code = 0) {
 }
 
 process.on("SIGTERM", () => shutdown(0));
-process.on("SIGINT", () => shutdown(0));
+
+// Fixes Ctrl+C handling on Windows
+if (process.platform === "win32") {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  rl.on("SIGINT", () => {
+    process.emit("SIGINT");
+  });
+}
+process.on("SIGINT", () => { shutdown(0), process.exit(0) });
 
 module.exports = server;
