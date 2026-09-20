@@ -1,5 +1,6 @@
 const { Worker } = require("bullmq");
 const { Expo } = require("expo-server-sdk");
+const fcm = require("../../config/firebase");
 const redis = require("../../config/redis");
 const prisma = require("../../config/prisma");
 const logger = require("../../config/logger");
@@ -27,15 +28,33 @@ const notificationWorker = new Worker(
       select: { pushToken: true },
     });
 
-    if (user?.pushToken && Expo.isExpoPushToken(user.pushToken)) {
-      await expo.sendPushNotificationsAsync([
-        {
-          to: user.pushToken,
-          title,
-          body: body || "",
-          data: { refPostId, refReplyId },
-        },
-      ]);
+    if (user?.pushToken) {
+      if (Expo.isExpoPushToken(user.pushToken)) {
+        await expo.sendPushNotificationsAsync([
+          {
+            to: user.pushToken,
+            title,
+            body: body || "",
+            data: { refPostId, refReplyId },
+          },
+        ]);
+      } else if (fcm) {
+        // Assume pushToken is an FCM token
+        try {
+          await fcm.send({
+            token: user.pushToken,
+            notification: { title, body: body || "" },
+            data: {
+              refPostId: refPostId || "",
+              refReplyId: refReplyId || "",
+            },
+          });
+        } catch (err) {
+          logger.error({ err }, "FCM send failed");
+        }
+      } else {
+        logger.warn({ pushToken: user.pushToken }, "Unknown push token format and FCM not configured");
+      }
     }
   },
   { connection: redis, concurrency: 10 }

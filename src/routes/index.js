@@ -6,6 +6,7 @@ router.use("/replies", require("../modules/reply/reply.routes"));
 router.use("/notifications", require("../modules/notification/notification.routes"));
 router.use("/users", require("../modules/karma/karma.routes"));
 router.use("/users", require("../modules/users/users.routes"));
+router.use("/debug", require("../modules/debug/debug.routes"));
 router.use("/", require("../modules/report/report.routes")); // /posts/:id/report, /admin/*
 
 module.exports = router;
