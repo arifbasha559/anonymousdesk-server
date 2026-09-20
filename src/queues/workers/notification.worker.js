@@ -1,7 +1,10 @@
 const { Worker } = require("bullmq");
+const { Expo } = require("expo-server-sdk");
 const redis = require("../../config/redis");
 const prisma = require("../../config/prisma");
 const logger = require("../../config/logger");
+
+const expo = new Expo();
 
 const notificationWorker = new Worker(
   "notification",
@@ -18,6 +21,22 @@ const notificationWorker = new Worker(
         refReplyId: refReplyId || null,
       },
     });
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { pushToken: true },
+    });
+
+    if (user?.pushToken && Expo.isExpoPushToken(user.pushToken)) {
+      await expo.sendPushNotificationsAsync([
+        {
+          to: user.pushToken,
+          title,
+          body: body || "",
+          data: { refPostId, refReplyId },
+        },
+      ]);
+    }
   },
   { connection: redis, concurrency: 10 }
 );

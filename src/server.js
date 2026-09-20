@@ -4,9 +4,9 @@ const app = require("./app");
 const prisma = require("./config/prisma");
 const redis = require("./config/redis");
 const readline = require('readline');
-
-const server = app.listen(env.PORT, () => {
-  logger.info(`AnonymousDesk API listening on port ${env.PORT} [${env.NODE_ENV}]`);
+const ip = require('ip')
+const server = app.listen(env.PORT,ip.address(), () => {
+  logger.info(`AnonymousDesk API listening on port ${ip.address()+':'+env.PORT} [${env.NODE_ENV}]`);
 });
 
 // Never let the process silently keep running in a broken state —

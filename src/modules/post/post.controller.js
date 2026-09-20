@@ -13,6 +13,7 @@ async function create(req, res, next) {
 async function list(req, res, next) {
   try {
     const result = await postService.listPosts(req.query);
+    console.log(req.query)
     return success(res, result.posts, 200, {
       total: result.total,
       page: result.page,
@@ -43,6 +44,7 @@ async function upvote(req, res, next) {
 
 async function remove(req, res, next) {
   try {
+    console.log(hellow)
     await postService.deletePost(req.user.id, req.user.trustLevel, req.params.postId);
     return success(res, { status: "removed" });
   } catch (err) {

@@ -18,18 +18,18 @@ async function createPost(authorId, { title, body, categoryId, tags }) {
       publishedAt: new Date(),
       tags: tags?.length
         ? {
-            create: await Promise.all(
-              tags.map(async (name) => {
-                const slug = name.toLowerCase().replace(/\s+/g, "-");
-                const tag = await prisma.tag.upsert({
-                  where: { slug },
-                  update: {},
-                  create: { name, slug },
-                });
-                return { tagId: tag.id };
-              })
-            ),
-          }
+          create: await Promise.all(
+            tags.map(async (name) => {
+              const slug = name.toLowerCase().replace(/\s+/g, "-");
+              const tag = await prisma.tag.upsert({
+                where: { slug },
+                update: {},
+                create: { name, slug },
+              });
+              return { tagId: tag.id };
+            })
+          ),
+        }
         : undefined,
     },
     include: { category: true, tags: { include: { tag: true } } },
@@ -56,11 +56,11 @@ async function listPosts({ page, limit, categoryId, tag, search, sort }) {
     ...(tag ? { tags: { some: { tag: { slug: tag.toLowerCase().replace(/\s+/g, "-") } } } } : {}),
     ...(search
       ? {
-          OR: [
-            { title: { contains: search } },
-            { body: { contains: search } },
-          ],
-        }
+        OR: [
+          { title: { contains: search } },
+          { body: { contains: search } },
+        ],
+      }
       : {}),
   };
 
@@ -74,6 +74,13 @@ async function listPosts({ page, limit, categoryId, tag, search, sort }) {
     }),
     prisma.post.count({ where }),
   ]);
+  console.log({
+    where,
+    orderBy: buildOrderBy(sort),
+    skip: (page - 1) * limit,
+    take: limit,
+    include: { category: true, tags: { include: { tag: true } } },
+  })
 
   return {
     posts,
@@ -129,7 +136,7 @@ async function deletePost(userId, trustLevel, postId) {
   const isOwner = post.authorId === userId;
   const isModerator = trustLevel === "expert";
   if (!isOwner && !isModerator) throw ApiError.forbidden("You cannot delete this post");
-
+  console.log("delete")
   await prisma.post.update({ where: { id: postId }, data: { status: "removed" } });
 }
 
