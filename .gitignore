@@ -8,3 +8,4 @@ build/
 coverage/
 prisma/migrations/dev.db
 *-firebase-adminsdk-*.json
+google-services.json
