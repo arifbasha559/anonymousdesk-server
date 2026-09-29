@@ -6,7 +6,7 @@ const logger = require("../../config/logger");
 const moderationWorker = require("./moderation.worker");
 const summaryWorker = require("./summary.worker");
 const notificationWorker = require("./notification.worker");
-
+  
 logger.info("AnonymousDesk workers started (moderation, summary, notification)");
 
 async function shutdown() {

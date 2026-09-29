@@ -16,7 +16,7 @@ const logger = require("../../config/logger");
 const MAX_FAILED_LOGINS = 5;
 const LOCKOUT_MINUTES = 15;
 
-async function issueTokenPair(user, deviceFingerprint) {
+async function issueTokenPair(user, ) {
   const accessToken = signAccessToken(user);
 
   const rawRefreshToken = randomToken();
@@ -26,7 +26,6 @@ async function issueTokenPair(user, deviceFingerprint) {
     data: {
       userId: user.id,
       tokenHash: hashToken(rawRefreshToken),
-      deviceFingerprint: deviceFingerprint || null,
       expiresAt,
     },
   });
@@ -34,7 +33,7 @@ async function issueTokenPair(user, deviceFingerprint) {
   return { accessToken, refreshToken: rawRefreshToken, expiresAt };
 }
 
-async function register({ email, password, industry, jobTitle, yearsExp, deviceFingerprint }) {
+async function register({ email, password, industry, jobTitle, yearsExp }) {
   const emailHash = hashEmail(email);
 
   const existing = await prisma.user.findUnique({ where: { emailHash } });
@@ -60,11 +59,11 @@ async function register({ email, password, industry, jobTitle, yearsExp, deviceF
 
   logger.info({ anonId: user.anonId }, "New user registered");
 
-  const tokens = await issueTokenPair(user, deviceFingerprint);
+  const tokens = await issueTokenPair(user);
   return { user, tokens, isNewUser: true };
 }
 
-async function login({ email, password, deviceFingerprint }) {
+async function login({ email, password }) {
   const emailHash = hashEmail(email);
   const user = await prisma.user.findUnique({ where: { emailHash } });
 
@@ -115,7 +114,7 @@ async function login({ email, password, deviceFingerprint }) {
     });
   }
 
-  const tokens = await issueTokenPair(user, deviceFingerprint);
+  const tokens = await issueTokenPair(user);
   return { user, tokens, isNewUser: false };
 }
 
@@ -142,7 +141,7 @@ async function refresh({ refreshToken }) {
     data: { isRevoked: true, lastUsedAt: new Date() },
   });
 
-  const tokens = await issueTokenPair(record.user, record.deviceFingerprint);
+  const tokens = await issueTokenPair(record.user);
   return { user: record.user, tokens };
 }
 

@@ -8,20 +8,18 @@ const logger = require("../config/logger");
 const allowedOrigins = env.CORS_ORIGINS.split(",")
   .map((o) => o.trim())
   .filter(Boolean);
-
 const corsOptions = {
   origin(origin, callback) {
-    // Allow no-origin requests (native mobile apps, curl, server-to-server)
-    // but enforce an explicit allowlist for browser-based origins.
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+    console.log("Allowed CORS origins:", allowedOrigins.includes(origin), origin); // Log allowed origins for debugging
+
+    if (!origin) return callback(null, true); // non-browser / server-to-server — CORS is meaningless here
+    if (allowedOrigins.includes(origin)) return callback(null, true);
     logger.warn({ origin }, "Blocked CORS request from disallowed origin");
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Device-Fingerprint"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   maxAge: 600,
 };
 

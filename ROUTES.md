@@ -4,10 +4,13 @@ This document lists HTTP routes, middleware, request shapes, and success respons
 
 Files referenced: [src/routes/index.js](src/routes/index.js#L1)
 
+
+**Notes:** All request are prefix with `http://localhost:4000/api/v1`.
+
 | Method | Path | Middleware | Request (params / query / body) | Success response (example) |
 |---|---|---|---|---|
-| POST | /auth/register | `authLimiter`, `validate(registerSchema)` | Body: `email, password, industry, jobTitle, yearsExp, deviceFingerprint?` | 201 `{ success: true, data: { anonId, industry, jobTitle, experienceYears, industryVerified, karma, trustLevel, accessToken, refreshToken, expiresAt, isNewUser } }` |
-| POST | /auth/login | `authLimiter`, `validate(loginSchema)` | Body: `email, password, deviceFingerprint?` | 200 `{ success: true, data: { anonId, ..., accessToken, refreshToken, expiresAt, isNewUser } }` |
+| POST | /auth/register | `authLimiter`, `validate(registerSchema)` | Body: `email, password, industry, jobTitle, yearsExp` | 201 `{ success: true, data: { anonId, industry, jobTitle, experienceYears, industryVerified, karma, trustLevel, accessToken, refreshToken, expiresAt, isNewUser } }` |
+| POST | /auth/login | `authLimiter`, `validate(loginSchema)` | Body: `email, password` | 200 `{ success: true, data: { anonId, ..., accessToken, refreshToken, expiresAt, isNewUser } }` |
 | POST | /auth/token/refresh | `authLimiter`, `validate(refreshSchema)` | Body: `refreshToken` | 200 `{ success: true, data: { accessToken, refreshToken, expiresAt } }` |
 | POST | /auth/token/revoke | `requireAuth` | Body (optional): `refreshToken` | 200 `{ success: true, data: { status: "revoked" } }` |
 | PATCH | /auth/profile/industry | `requireAuth`, `validate(updateIndustrySchema)` | Body: `industry, jobTitle, yearsExp` | 200 `{ success: true, data: <serialized user> }` |

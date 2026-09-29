@@ -46,7 +46,7 @@ async function createReply(authorId, postId, { body, parentReplyId }) {
     return created;
   });
 
-  await moderationQueue.add("moderate", { targetType: "reply", targetId: reply.id });
+  // await moderationQueue.add("moderate", { targetType: "reply", targetId: reply.id });
 
   if (post.authorId && post.authorId !== author.id) {
     await notificationQueue.add("notify", {
@@ -60,7 +60,7 @@ async function createReply(authorId, postId, { body, parentReplyId }) {
 
   // Re-summarize once there's enough signal — cheap to enqueue repeatedly,
   // the worker itself gates on reply count.
-  await summaryQueue.add("summarize", { postId });
+  // await summaryQueue.add("summarize", { postId });
 
   return reply;
 }

@@ -14,13 +14,11 @@ const registerSchema = z.object({
   industry: z.string().trim().min(2).max(100),
   jobTitle: z.string().trim().min(2).max(150),
   yearsExp: z.coerce.number().int().min(0).max(60),
-  deviceFingerprint: z.string().max(255).optional(),
 });
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(255),
   password: z.string().min(1).max(128),
-  deviceFingerprint: z.string().max(255).optional(),
 });
 
 const refreshSchema = z.object({
