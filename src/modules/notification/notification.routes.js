@@ -65,6 +65,19 @@ const controller = {
       next(err);
     }
   },
+  async deleteNotification(userId, notificationId) {
+    const result = await prisma.notification.deleteMany({
+      where: { id: notificationId, userId },
+    });
+    if (result.count === 0) throw new Error("Notification not found or not authorized");
+    return result.count;
+  },
+  async deleteAll(userId) {
+    const result = await prisma.notification.deleteMany({
+      where: { userId },
+    });
+    return result.count;
+  }
 };
 
 // ── Routes ──
@@ -80,5 +93,6 @@ router.patch(
   controller.markRead
 );
 router.patch("/read-all", requireAuth, controller.markAllRead);
-
+router.delete("/:notificationId/delete", requireAuth, validate(notifIdParamSchema, "params"), controller.deleteNotification);
+router.delete("/delete-all", requireAuth, validate(notifIdParamSchema, "params"), controller.deleteAll);
 module.exports = router;
