@@ -38,7 +38,21 @@ async function markAllRead(userId) {
   });
   return result.count;
 }
-
+async function deleteNotification(userId, notificationId) {
+  const result = await prisma.notification.deleteMany({
+    where: { id: notificationId, userId },
+  });
+  if (result.count === 0) {
+    throw new Error("Notification not found or not authorized");
+  }
+  return result.count;
+}
+async function deleteAll(userId) {
+  const result = await prisma.notification.deleteMany({
+    where: { userId },
+  });
+  return result.count;
+}
 // ── Controller ──
 const controller = {
   async list(req, res, next) {
@@ -65,18 +79,21 @@ const controller = {
       next(err);
     }
   },
-  async deleteNotification(userId, notificationId) {
-    const result = await prisma.notification.deleteMany({
-      where: { id: notificationId, userId },
-    });
-    if (result.count === 0) throw new Error("Notification not found or not authorized");
-    return result.count;
+  async deleteNotification(req, res, next) {
+    try {
+      const count = await deleteNotification(req.user.id, req.params.notificationId);
+      return success(res, { status: "deleted successfully", count });
+    } catch (err) {
+      next(err);
+    }
   },
-  async deleteAll(userId) {
-    const result = await prisma.notification.deleteMany({
-      where: { userId },
-    });
-    return result.count;
+  async deleteAll(req, res, next) {
+    try {
+      const count = await deleteAll(req.user.id);
+      return success(res, { status: "all_delete", count });
+    } catch (err) {
+      next(err);
+    }
   }
 };
 
