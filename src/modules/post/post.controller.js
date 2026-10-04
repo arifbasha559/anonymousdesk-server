@@ -13,7 +13,6 @@ async function create(req, res, next) {
 async function list(req, res, next) {
   try {
     const result = await postService.listPosts(req.query);
-    console.log(req.query)
     return success(res, result.posts, 200, {
       total: result.total,
       page: result.page,

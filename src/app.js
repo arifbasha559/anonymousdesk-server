@@ -27,11 +27,22 @@ app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 app.use(
   pinoHttp({
     logger,
-    autoLogging: { ignore: (req) => req.url === "/health" },
+    autoLogging: { ignore: (req) => req.url.startsWith("/health") },
     customLogLevel: (req, res, err) => {
       if (err || res.statusCode >= 500) return "error";
       if (res.statusCode >= 400) return "warn";
       return "info";
+    },
+    serializers: {
+      req: (req) => ({
+        method: req.method,
+        url: req.url,
+
+        remoteAddress: req.remoteAddress
+      }),
+      res: (res) => ({
+        statusCode: res.statusCode,
+      }),
     },
   })
 );

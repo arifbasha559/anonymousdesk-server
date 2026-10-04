@@ -7,6 +7,7 @@ function success(res, data, status = 200, meta) {
     success: true,
     data,
     ...(meta ? { meta } : {}),
+    log: null,
   });
 }
 
